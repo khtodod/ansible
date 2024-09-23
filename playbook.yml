@@ -21,7 +21,6 @@
           - docker
           - mysql
           - go
-          - dwm
           - lightdm
           - lightdm-gtk-greeter # Optional display manager
           - yarn
@@ -47,6 +46,18 @@
       args:
         chdir: /home/{{ ansible_user }}/yay
         creates: /usr/bin/yay
+
+    - name: Clone dwm repository
+      git:
+        repo: https://git.suckless.org/dwm
+        dest: /usr/local/src/dwm
+
+    - name: Compile and install dwm
+      shell: |
+        cd /usr/local/src/dwm
+        sudo make clean install
+      args:
+        creates: /usr/local/bin/dwm
 
     # Install AUR packages using yay
     - name: Install Visual Studio Code from AUR
