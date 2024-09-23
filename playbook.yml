@@ -40,14 +40,22 @@
         repo: https://aur.archlinux.org/yay.git
         dest: /home/{{ ansible_user_id }}/yay
 
-    - name: Build and install yay (as non-root user)
+    - name: Ensure proper ownership of the yay build directory
+      file:
+        path: /home/{{ ansible_user_id }}/yay
+        state: directory
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
+        mode: "0755"
+
+    - name: Set BUILDDIR environment variable and build yay
       become: no
       shell: |
+        export BUILDDIR=/home/{{ ansible_user_id }}/yay
         cd /home/{{ ansible_user_id }}/yay
         makepkg -si --noconfirm
       args:
         chdir: /home/{{ ansible_user_id }}/yay
-        creates: /usr/bin/yay
       become_user: "{{ ansible_user_id }}"
 
     # Install AUR packages using yay
