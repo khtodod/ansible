@@ -21,50 +21,148 @@
           - docker
           - mysql
           - go
+          - dwm
           - lightdm
           - lightdm-gtk-greeter # Optional display manager
-          - code # Visual Studio Code
-          - azure-data-studio # Azure Data Studio
-          - steam # Steam
-          - insomnia # Insomnia REST client
-          - spotify # Spotify
-          - discord # Discord
-          - anydesk # AnyDesk
-          - thorium-browser # Thorium Browser
-          - yarn # Yarn
-          - github-cli # GitHub CLI
-          - base-devel
+          - yarn # Yarn (This can be installed through the Arch repository)
         state: present
 
-    - name: Clone and install dwm
-      block:
-        - name: Clone dwm repository
-          git:
-            repo: https://git.suckless.org/dwm
-            dest: /usr/local/src/dwm
-
-        - name: Compile and install dwm
-          shell: |
-            cd /usr/local/src/dwm
-            make clean install
-          args:
-            creates: /usr/local/bin/dwm
-
-    - name: Clone PHP repository
+    # Install Visual Studio Code from source
+    - name: Clone Visual Studio Code repository
       git:
-        repo: https://github.com/php/php-src.git
-        dest: /usr/local/src/php-src
-        version: master
+        repo: https://github.com/microsoft/vscode.git
+        dest: /usr/local/src/vscode
+        version: main
 
-    - name: Compile and install PHP
+    - name: Build and install Visual Studio Code
       shell: |
-        cd /usr/local/src/php-src
-        ./buildconf --force
-        ./configure --enable-mbstring --with-curl --with-openssl --with-bz2 --enable-intl --with-zlib --enable-soap --with-mysqli
-        make
-        make install
+        cd /usr/local/src/vscode
+        yarn
+        yarn compile
+        yarn build
+        cp .build/vscode /usr/local/bin/code
       args:
-        creates: /usr/local/bin/php
+        creates: /usr/local/bin/code
+
+    # Install Azure Data Studio from source
+    - name: Clone Azure Data Studio repository
+      git:
+        repo: https://github.com/microsoft/azuredatastudio.git
+        dest: /usr/local/src/azuredatastudio
+        version: main
+
+    - name: Build and install Azure Data Studio
+      shell: |
+        cd /usr/local/src/azuredatastudio
+        yarn
+        yarn compile
+        yarn build
+        cp .build/azuredatastudio /usr/local/bin/azuredatastudio
+      args:
+        creates: /usr/local/bin/azuredatastudio
+
+    # Install Steam (Steam is typically installed from the AUR, but if you want to build it yourself):
+    - name: Install Steam from AUR using yay
+      aur:
+        name: steam
+        state: present
+        use: yay
+
+    # Install Insomnia from source
+    - name: Clone Insomnia repository
+      git:
+        repo: https://github.com/Kong/insomnia.git
+        dest: /usr/local/src/insomnia
+        version: develop
+
+    - name: Build and install Insomnia
+      shell: |
+        cd /usr/local/src/insomnia
+        yarn
+        yarn build
+        cp build/linux/insomnia /usr/local/bin/insomnia
+      args:
+        creates: /usr/local/bin/insomnia
+
+    # Install Spotify (Spotify can be installed from AUR)
+    - name: Install Spotify from AUR using yay
+      aur:
+        name: spotify
+        state: present
+        use: yay
+
+    # Install Discord from source (alternatively, use AUR for simplicity)
+    - name: Install Discord from AUR using yay
+      aur:
+        name: discord
+        state: present
+        use: yay
+
+    # Install AnyDesk from AUR using yay
+    - name: Install AnyDesk from AUR using yay
+      aur:
+        name: anydesk-bin
+        state: present
+        use: yay
+
+    # Install Thorium Browser from source
+    - name: Clone Thorium Browser repository
+      git:
+        repo: https://github.com/Alex313031/thorium.git
+        dest: /usr/local/src/thorium
+        version: main
+
+    - name: Build and install Thorium Browser
+      shell: |
+        cd /usr/local/src/thorium
+        ./build.sh
+        cp out/thorium /usr/local/bin/thorium-browser
+      args:
+        creates: /usr/local/bin/thorium-browser
+
+    # Install GitHub CLI from source
+    - name: Clone GitHub CLI repository
+      git:
+        repo: https://github.com/cli/cli.git
+        dest: /usr/local/src/cli
+        version: main
+
+    - name: Build and install GitHub CLI
+      shell: |
+        cd /usr/local/src/cli
+        make
+        cp bin/gh /usr/local/bin/gh
+      args:
+        creates: /usr/local/bin/gh
+
+    # Enable Docker service
+    - name: Enable Docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Add user to Docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    # Start and enable MySQL service
+    - name: Start and enable MySQL service
+      systemd:
+        name: mysqld
+        enabled: yes
+        state: started
+
+    - name: Secure MySQL installation
+      shell: |
+        mysql -u root -e "UPDATE mysql.user SET Password = PASSWORD('root') WHERE User = 'root';"
+        mysql -u root -p'root' -e "DELETE FROM mysql.user WHERE User='';"
+        mysql -u root -p'root' -e "DROP DATABASE IF EXISTS test;"
+        mysql -u root -p'root' -e "FLUSH PRIVILEGES;"
+      args:
+        executable: /bin/bash
 
     - name: Install PHP extensions
       shell: |
