@@ -3,8 +3,8 @@
   hosts: localhost
   become: yes
   vars:
-    ansible_user: khtodod
-    ansible_user_id: khtodod
+    ansible_user: todoo
+    ansible_user_id: todoo
     ssh_public_key: "{{ lookup('ansible.vault', 'ssh_key.vault') }}"
 
   tasks:
