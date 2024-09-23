@@ -39,8 +39,6 @@
       git:
         repo: https://aur.archlinux.org/yay.git
         dest: /home/{{ ansible_user_id }}/yay
-        owner: "{{ ansible_user_id }}"
-        group: "{{ ansible_user_id }}"
 
     - name: Build and install yay (as non-root user)
       become: no
