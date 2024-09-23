@@ -21,7 +21,6 @@
           - docker
           - mysql
           - go
-          - dwm
           - lightdm
           - lightdm-gtk-greeter # Optional display manager
           - code # Visual Studio Code
@@ -34,7 +33,22 @@
           - thorium-browser # Thorium Browser
           - yarn # Yarn
           - github-cli # GitHub CLI
+          - base-devel
         state: present
+
+    - name: Clone and install dwm
+      block:
+        - name: Clone dwm repository
+          git:
+            repo: https://git.suckless.org/dwm
+            dest: /usr/local/src/dwm
+
+        - name: Compile and install dwm
+          shell: |
+            cd /usr/local/src/dwm
+            make clean install
+          args:
+            creates: /usr/local/bin/dwm
 
     - name: Clone PHP repository
       git:
@@ -80,21 +94,21 @@
     - name: Create .xinitrc file to start DWM
       copy:
         content: "exec dwm\n"
-        dest: /home/{{ ansible_user }}/.xinitrc
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
+        dest: /home/{{ ansible_user_id }}/.xinitrc
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
         mode: "0644"
 
     - name: Ensure .xinitrc is executable
       file:
-        path: /home/{{ ansible_user }}/.xinitrc
+        path: /home/{{ ansible_user_id }}/.xinitrc
         mode: "0755"
 
     - name: Install Oh My Zsh
       shell: |
         sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" || true
       args:
-        creates: /home/{{ ansible_user }}/.oh-my-zsh
+        creates: /home/{{ ansible_user_id }}/.oh-my-zsh
 
     - name: Enable Docker service
       systemd:
@@ -104,7 +118,7 @@
 
     - name: Add user to Docker group
       user:
-        name: "{{ ansible_user }}"
+        name: "{{ ansible_user_id }}"
         groups: docker
         append: yes
 
@@ -115,63 +129,62 @@
         state: started
 
     - name: Secure MySQL installation
-      shell: |
-        mysql -u root -e "UPDATE mysql.user SET Password = PASSWORD('root') WHERE User = 'root';"
-        mysql -u root -p'root' -e "DELETE FROM mysql.user WHERE User='';"
-        mysql -u root -p'root' -e "DROP DATABASE IF EXISTS test;"
-        mysql -u root -p'root' -e "FLUSH PRIVILEGES;"
-      args:
-        executable: /bin/bash
+      mysql_user:
+        name: root
+        host_all: yes
+        password: "root"
+        priv: "*.*:ALL,GRANT"
+        state: present
 
     - name: Ensure SSH directory exists for user
       file:
-        path: /home/{{ ansible_user }}/.ssh
+        path: /home/{{ ansible_user_id }}/.ssh
         state: directory
         mode: "0700"
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
 
     - name: Add your SSH public key to authorized_keys
       authorized_key:
-        user: "{{ ansible_user }}"
+        user: "{{ ansible_user_id }}"
         state: present
         key: "{{ ssh_public_key }}"
-        path: /home/{{ ansible_user }}/.ssh/authorized_keys
+        path: /home/{{ ansible_user_id }}/.ssh/authorized_keys
 
     - name: Ensure Neovim config directory exists
       file:
-        path: /home/{{ ansible_user }}/.config/nvim
+        path: /home/{{ ansible_user_id }}/.config/nvim
         state: directory
         mode: "0755"
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
 
     - name: Copy Neovim init.vim configuration file
       copy:
         src: nvim_config/init.vim
-        dest: /home/{{ ansible_user }}/.config/nvim/init.vim
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
+        dest: /home/{{ ansible_user_id }}/.config/nvim/init.vim
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
         mode: "0644"
 
     - name: Copy Neovim coc-settings.json configuration file
       copy:
         src: nvim_config/coc-settings.json
-        dest: /home/{{ ansible_user }}/.config/nvim/coc-settings.json
-        owner: "{{ ansible_user }}"
-        group: "{{ ansible_user }}"
+        dest: /home/{{ ansible_user_id }}/.config/nvim/coc-settings.json
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
         mode: "0644"
 
     - name: Download NVM install script
       get_url:
         url: https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh
-        dest: /home/{{ ansible_user }}/install-nvm.sh
+        dest: /home/{{ ansible_user_id }}/install-nvm.sh
         mode: "0755"
 
     - name: Install NVM
-      shell: bash /home/{{ ansible_user }}/install-nvm.sh
+      shell: bash /home/{{ ansible_user_id }}/install-nvm.sh
       args:
-        creates: /home/{{ ansible_user }}/.nvm
+        creates: /home/{{ ansible_user_id }}/.nvm
 
     - name: Load NVM and install Node.js (v22)
       shell: |
@@ -193,13 +206,13 @@
     - name: Download Rust installation script
       get_url:
         url: https://sh.rustup.rs
-        dest: /home/{{ ansible_user }}/install-rust.sh
+        dest: /home/{{ ansible_user_id }}/install-rust.sh
         mode: "0755"
 
     - name: Install Rust toolchain
-      shell: bash /home/{{ ansible_user }}/install-rust.sh -y
+      shell: bash /home/{{ ansible_user_id }}/install-rust.sh -y
       args:
-        creates: /home/{{ ansible_user }}/.cargo/bin/rustc
+        creates: /home/{{ ansible_user_id }}/.cargo/bin/rustc
 
     - name: Source Cargo environment and install components
       shell: |
@@ -214,7 +227,7 @@
         export PATH=$PATH:/usr/local/go/bin
         go install golang.org/x/tools/gopls@latest
       args:
-        creates: /home/{{ ansible_user }}/go/bin/gopls
+        creates: /home/{{ ansible_user_id }}/go/bin/gopls
 
     # Set Thorium as the default browser
     - name: Set Thorium as default browser
