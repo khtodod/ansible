@@ -24,11 +24,10 @@
           - mysql
           - go
           - lightdm
-          - lightdm-gtk-greeter # Optional display manager
           - yarn
         state: present
 
-    # Install yay AUR helper
+        # Install yay AUR helper
     - name: Install dependencies for building yay
       pacman:
         name:
@@ -40,72 +39,82 @@
       git:
         repo: https://aur.archlinux.org/yay.git
         dest: /home/{{ ansible_user_id }}/yay
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
 
-    - name: Build and install yay
+    - name: Build and install yay (as non-root user)
+      become: no
       shell: |
         cd /home/{{ ansible_user_id }}/yay
         makepkg -si --noconfirm
       args:
         chdir: /home/{{ ansible_user_id }}/yay
         creates: /usr/bin/yay
-
-    - name: Clone dwm repository
-      git:
-        repo: https://git.suckless.org/dwm
-        dest: /usr/local/src/dwm
-
-    - name: Compile and install dwm
-      shell: |
-        cd /usr/local/src/dwm
-        sudo make clean install
-      args:
-        creates: /usr/local/bin/dwm
+      become_user: "{{ ansible_user_id }}"
 
     # Install AUR packages using yay
     - name: Install Visual Studio Code from AUR
+      become: no
       shell: yay -S --noconfirm visual-studio-code-bin
       args:
         executable: /bin/bash
+      become_user: "{{ ansible_user_id }}"
 
     - name: Install Azure Data Studio from AUR
+      become: no
       shell: yay -S --noconfirm azure-data-studio-bin
       args:
         executable: /bin/bash
+      become_user: "{{ ansible_user_id }}"
 
     - name: Install Steam from AUR
+      become: no
       shell: yay -S --noconfirm steam
       args:
         executable: /bin/bash
+      become_user: "{{ ansible_user_id }}"
 
     - name: Install Insomnia from AUR
+      become: no
       shell: yay -S --noconfirm insomnia
       args:
         executable: /bin/bash
+      become_user: "{{ ansible_user_id }}"
 
     - name: Install Spotify from AUR
+      become: no
       shell: yay -S --noconfirm spotify
       args:
         executable: /bin/bash
+      become_user: "{{ ansible_user_id }}"
 
     - name: Install Discord from AUR
+      become: no
       shell: yay -S --noconfirm discord
       args:
         executable: /bin/bash
+      become_user: "{{ ansible_user_id }}"
 
     - name: Install AnyDesk from AUR
+      become: no
       shell: yay -S --noconfirm anydesk-bin
       args:
         executable: /bin/bash
+      become_user: "{{ ansible_user_id }}"
 
     - name: Install Thorium Browser from AUR
+      become: no
       shell: yay -S --noconfirm thorium-bin
       args:
         executable: /bin/bash
+      become_user: "{{ ansible_user_id }}"
 
     - name: Install GitHub CLI from AUR
+      become: no
       shell: yay -S --noconfirm github-cli
       args:
         executable: /bin/bash
+      become_user: "{{ ansible_user_id }}"
 
     # Enable Docker service
     - name: Enable Docker service
