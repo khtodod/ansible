@@ -1,0 +1,223 @@
+---
+- name: Setup Arch Linux
+  hosts: localhost
+  become: yes
+  vars:
+    ssh_public_key: "{{ lookup('ansible.vault', 'ssh_key.vault') }}"
+
+  tasks:
+    - name: Update package database and upgrade system
+      pacman:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Install base packages
+      pacman:
+        name:
+          - git
+          - openssh
+          - neovim
+          - zsh
+          - docker
+          - php
+          - php-fpm
+          - php-pgsql
+          - php-sqlite
+          - php-gd
+          - php-curl
+          - php-intl
+          - php-mbstring
+          - php-xml
+          - php-zip
+          - php-soap
+          - php-apcu
+          - mysql
+          - go
+          - dwm
+          - lightdm
+          - lightdm-gtk-greeter # Optional display manager
+          - code # Visual Studio Code
+          - azure-data-studio # Azure Data Studio
+          - steam # Steam
+          - insomnia # Insomnia REST client
+          - spotify # Spotify
+          - discord # Discord
+          - anydesk # AnyDesk
+          - thorium-browser # Thorium Browser
+          - yarn # Yarn
+          - github-cli # GitHub CLI
+        state: present
+
+    - name: Enable SSH service
+      systemd:
+        name: sshd
+        enabled: yes
+        state: started
+
+    - name: Enable LightDM service
+      systemd:
+        name: lightdm
+        enabled: yes
+        state: started
+
+    - name: Create .xinitrc file to start DWM
+      copy:
+        content: "exec dwm\n"
+        dest: /home/{{ ansible_user }}/.xinitrc
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    - name: Ensure .xinitrc is executable
+      file:
+        path: /home/{{ ansible_user }}/.xinitrc
+        mode: "0755"
+
+    - name: Install Oh My Zsh
+      shell: |
+        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" || true
+      args:
+        creates: /home/{{ ansible_user }}/.oh-my-zsh
+
+    - name: Enable Docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Add user to Docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Start and enable MySQL service
+      systemd:
+        name: mysqld
+        enabled: yes
+        state: started
+
+    - name: Secure MySQL installation
+      mysql_secure_installation:
+        login_user: root
+        login_password: ""
+        current_root_password: ""
+        new_root_password: "your-root-password"
+        remove_anonymous_user: yes
+        disallow_root_login_remotely: yes
+        remove_test_db: yes
+        state: present
+
+    - name: Ensure SSH directory exists for user
+      file:
+        path: /home/{{ ansible_user }}/.ssh
+        state: directory
+        mode: "0700"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Add your SSH public key to authorized_keys
+      authorized_key:
+        user: "{{ ansible_user }}"
+        state: present
+        key: "{{ ssh_public_key }}"
+        path: /home/{{ ansible_user }}/.ssh/authorized_keys
+
+    - name: Ensure Neovim config directory exists
+      file:
+        path: /home/{{ ansible_user }}/.config/nvim
+        state: directory
+        mode: "0755"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Copy Neovim init.vim configuration file
+      copy:
+        src: nvim_config/init.vim
+        dest: /home/{{ ansible_user }}/.config/nvim/init.vim
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    - name: Copy Neovim coc-settings.json configuration file
+      copy:
+        src: nvim_config/coc-settings.json
+        dest: /home/{{ ansible_user }}/.config/nvim/coc-settings.json
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0644"
+
+    # Install NVM and Node.js
+    - name: Download NVM install script
+      get_url:
+        url: https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh
+        dest: /home/{{ ansible_user }}/install-nvm.sh
+        mode: "0755"
+
+    - name: Install NVM
+      shell: bash /home/{{ ansible_user }}/install-nvm.sh
+      args:
+        creates: /home/{{ ansible_user }}/.nvm
+
+    - name: Load NVM and install Node.js (v22)
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm install 22
+      args:
+        executable: /bin/bash
+
+    - name: Set Node.js v22 as default
+      shell: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        nvm alias default 22
+      args:
+        executable: /bin/bash
+
+    # Install Rust toolchain
+    - name: Download Rust installation script
+      get_url:
+        url: https://sh.rustup.rs
+        dest: /home/{{ ansible_user }}/install-rust.sh
+        mode: "0755"
+
+    - name: Install Rust toolchain
+      shell: bash /home/{{ ansible_user }}/install-rust.sh -y
+      args:
+        creates: /home/{{ ansible_user }}/.cargo/bin/rustc
+
+    - name: Source Cargo environment and install components
+      shell: |
+        source $HOME/.cargo/env
+        rustup component add rls rust-analysis rust-src
+      args:
+        executable: /bin/bash
+
+    # Install Go language server (gopls)
+    - name: Install Go language server (gopls)
+      shell: |
+        export PATH=$PATH:/usr/local/go/bin
+        go install golang.org/x/tools/gopls@latest
+      args:
+        creates: /home/{{ ansible_user }}/go/bin/gopls
+
+    # Set Thorium as the default browser
+    - name: Set Thorium as default browser
+      shell: |
+        xdg-settings set default-web-browser thorium-browser.desktop
+      args:
+        executable: /bin/bash
+
+    # Authorize GitHub CLI
+    - name: GitHub CLI authentication
+      shell: |
+        gh auth login --with-token
+      args:
+        executable: /bin/bash
+      register: gh_auth
+      ignore_errors: yes
+
+    - name: Print GitHub CLI authentication result
+      debug:
+        var: gh_auth
