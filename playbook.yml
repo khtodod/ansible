@@ -98,15 +98,13 @@
         state: started
 
     - name: Secure MySQL installation
-      mysql_secure_installation:
-        login_user: root
-        login_password: ""
-        current_root_password: ""
-        new_root_password: "root"
-        remove_anonymous_user: yes
-        disallow_root_login_remotely: yes
-        remove_test_db: yes
-        state: present
+      shell: |
+        mysql -u root -e "UPDATE mysql.user SET Password = PASSWORD('root') WHERE User = 'root';"
+        mysql -u root -p'root' -e "DELETE FROM mysql.user WHERE User='';"
+        mysql -u root -p'root' -e "DROP DATABASE IF EXISTS test;"
+        mysql -u root -p'root' -e "FLUSH PRIVILEGES;"
+      args:
+        executable: /bin/bash
 
     - name: Ensure SSH directory exists for user
       file:
