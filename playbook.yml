@@ -19,18 +19,6 @@
           - neovim
           - zsh
           - docker
-          - php
-          - php-fpm
-          - php-pgsql
-          - php-sqlite
-          - php-gd
-          - php-curl
-          - php-intl
-          - php-mbstring
-          - php-xml
-          - php-zip
-          - php-soap
-          - php-apcu
           - mysql
           - go
           - dwm
@@ -47,6 +35,35 @@
           - yarn # Yarn
           - github-cli # GitHub CLI
         state: present
+
+    - name: Clone PHP repository
+      git:
+        repo: https://github.com/php/php-src.git
+        dest: /usr/local/src/php-src
+        version: master
+
+    - name: Compile and install PHP
+      shell: |
+        cd /usr/local/src/php-src
+        ./buildconf --force
+        ./configure --enable-mbstring --with-curl --with-openssl --with-bz2 --enable-intl --with-zlib --enable-soap --with-mysqli
+        make
+        make install
+      args:
+        creates: /usr/local/bin/php
+
+    - name: Install PHP extensions
+      shell: |
+        pecl install apcu
+        pecl install xdebug
+      args:
+        executable: /bin/bash
+
+    - name: Ensure PHP-FPM service is started and enabled
+      systemd:
+        name: php-fpm
+        enabled: yes
+        state: started
 
     - name: Enable SSH service
       systemd:
@@ -145,7 +162,6 @@
         group: "{{ ansible_user }}"
         mode: "0644"
 
-    # Install NVM and Node.js
     - name: Download NVM install script
       get_url:
         url: https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh
