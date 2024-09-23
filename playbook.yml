@@ -24,116 +24,75 @@
           - dwm
           - lightdm
           - lightdm-gtk-greeter # Optional display manager
-          - yarn # Yarn (This can be installed through the Arch repository)
+          - yarn
         state: present
 
-    # Install Visual Studio Code from source
-    - name: Clone Visual Studio Code repository
-      git:
-        repo: https://github.com/microsoft/vscode.git
-        dest: /usr/local/src/vscode
-        version: main
-
-    - name: Build and install Visual Studio Code
-      shell: |
-        cd /usr/local/src/vscode
-        yarn
-        yarn compile
-        yarn build
-        cp .build/vscode /usr/local/bin/code
-      args:
-        creates: /usr/local/bin/code
-
-    # Install Azure Data Studio from source
-    - name: Clone Azure Data Studio repository
-      git:
-        repo: https://github.com/microsoft/azuredatastudio.git
-        dest: /usr/local/src/azuredatastudio
-        version: main
-
-    - name: Build and install Azure Data Studio
-      shell: |
-        cd /usr/local/src/azuredatastudio
-        yarn
-        yarn compile
-        yarn build
-        cp .build/azuredatastudio /usr/local/bin/azuredatastudio
-      args:
-        creates: /usr/local/bin/azuredatastudio
-
-    # Install Steam (Steam is typically installed from the AUR, but if you want to build it yourself):
-    - name: Install Steam from AUR using yay
-      aur:
-        name: steam
+    # Install yay AUR helper
+    - name: Install dependencies for building yay
+      pacman:
+        name:
+          - base-devel
+          - git
         state: present
-        use: yay
 
-    # Install Insomnia from source
-    - name: Clone Insomnia repository
+    - name: Clone yay AUR helper repository
       git:
-        repo: https://github.com/Kong/insomnia.git
-        dest: /usr/local/src/insomnia
-        version: develop
+        repo: https://aur.archlinux.org/yay.git
+        dest: /home/{{ ansible_user }}/yay
 
-    - name: Build and install Insomnia
+    - name: Build and install yay
       shell: |
-        cd /usr/local/src/insomnia
-        yarn
-        yarn build
-        cp build/linux/insomnia /usr/local/bin/insomnia
+        cd /home/{{ ansible_user }}/yay
+        makepkg -si --noconfirm
       args:
-        creates: /usr/local/bin/insomnia
+        chdir: /home/{{ ansible_user }}/yay
+        creates: /usr/bin/yay
 
-    # Install Spotify (Spotify can be installed from AUR)
-    - name: Install Spotify from AUR using yay
-      aur:
-        name: spotify
-        state: present
-        use: yay
-
-    # Install Discord from source (alternatively, use AUR for simplicity)
-    - name: Install Discord from AUR using yay
-      aur:
-        name: discord
-        state: present
-        use: yay
-
-    # Install AnyDesk from AUR using yay
-    - name: Install AnyDesk from AUR using yay
-      aur:
-        name: anydesk-bin
-        state: present
-        use: yay
-
-    # Install Thorium Browser from source
-    - name: Clone Thorium Browser repository
-      git:
-        repo: https://github.com/Alex313031/thorium.git
-        dest: /usr/local/src/thorium
-        version: main
-
-    - name: Build and install Thorium Browser
-      shell: |
-        cd /usr/local/src/thorium
-        ./build.sh
-        cp out/thorium /usr/local/bin/thorium-browser
+    # Install AUR packages using yay
+    - name: Install Visual Studio Code from AUR
+      shell: yay -S --noconfirm visual-studio-code-bin
       args:
-        creates: /usr/local/bin/thorium-browser
+        executable: /bin/bash
 
-    # Install GitHub CLI from source
-    - name: Clone GitHub CLI repository
-      git:
-        repo: https://github.com/cli/cli.git
-        dest: /usr/local/src/cli
-        version: main
-
-    - name: Build and install GitHub CLI
-      shell: |
-        cd /usr/local/src/cli
-        make
-        cp bin/gh /usr/local/bin/gh
+    - name: Install Azure Data Studio from AUR
+      shell: yay -S --noconfirm azure-data-studio-bin
       args:
-        creates: /usr/local/bin/gh
+        executable: /bin/bash
+
+    - name: Install Steam from AUR
+      shell: yay -S --noconfirm steam
+      args:
+        executable: /bin/bash
+
+    - name: Install Insomnia from AUR
+      shell: yay -S --noconfirm insomnia
+      args:
+        executable: /bin/bash
+
+    - name: Install Spotify from AUR
+      shell: yay -S --noconfirm spotify
+      args:
+        executable: /bin/bash
+
+    - name: Install Discord from AUR
+      shell: yay -S --noconfirm discord
+      args:
+        executable: /bin/bash
+
+    - name: Install AnyDesk from AUR
+      shell: yay -S --noconfirm anydesk-bin
+      args:
+        executable: /bin/bash
+
+    - name: Install Thorium Browser from AUR
+      shell: yay -S --noconfirm thorium-bin
+      args:
+        executable: /bin/bash
+
+    - name: Install GitHub CLI from AUR
+      shell: yay -S --noconfirm github-cli
+      args:
+        executable: /bin/bash
 
     # Enable Docker service
     - name: Enable Docker service
